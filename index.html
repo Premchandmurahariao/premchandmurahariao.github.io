@@ -577,7 +577,7 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
                 </div>
             </div>
         </section>
-
+        
         <!-- CONTACT -->
         <section id="contact">
             <h1 class="section-title">Contact</h1>
@@ -599,25 +599,22 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
                 </div>
             </div>
         </section>
-         <!-- Visitor Counter Tab Start -->
-    <div id="visitor-container" class="visitor-tab fixed bottom-0 right-6 z-50 transition-all duration-300">
-        <div class="bg-white border border-gray-200 border-b-0 rounded-t-lg shadow-lg px-4 py-2 flex items-center space-x-3 cursor-default hover:bg-gray-50">
-            <!-- Icon -->
-            <div class="flex items-center justify-center bg-green-100 text-green-600 rounded-full p-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
-                    <path d="M244.8,150.4a8,8,0,0,1-11.2-1.6A96,96,0,1,0,128,224a96.8,96.8,0,0,0,32.7-5.7,8,8,0,1,1,5.4,15,112.9,112.9,0,0,1-38.1,6.7A112,112,0,1,1,240,128,111.3,111.3,0,0,1,244.8,150.4ZM128,80a48,48,0,1,0,48,48A48,48,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32.1,32.1,0,0,1,128,160Zm88-32a8,8,0,1,1-8-8A8,8,0,0,1,216,128Z"></path>
-                </svg>
+    </main>
+
+    <!-- VISITOR TAB UI -->
+    <div id="visitor-container" class="visitor-tab">
+        <div class="visitor-card">
+            <div class="visitor-icon">
+                <i class="fas fa-chart-line"></i>
             </div>
-            <!-- Count Display -->
-            <div class="flex flex-col">
-                <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400 leading-none">Live Visitors</span>
-                <span id="count" class="text-sm font-mono font-bold text-gray-700">Connecting...</span>
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Visitors</span>
+                <span id="count" style="font-size: 14px; font-weight: bold; color: #334155; font-family: monospace;">Connecting...</span>
             </div>
         </div>
     </div>
-    <!-- Visitor Counter Tab End -->
 
-    <!-- Firebase SDKs -->
+    <!-- FIREBASE MODULE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -627,17 +624,13 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
         const firebaseConfig = JSON.parse(__firebase_config);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'visitor-counter-app';
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
         const counterLabel = document.getElementById('count');
 
         async function initVisitorCounter() {
             try {
-                // MANDATORY RULE 3: Auth Before Queries
-                // Priority to custom token then anonymous sign in
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -645,50 +638,42 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
                 }
                 
                 onAuthStateChanged(auth, async (user) => {
-                    // Guard every Firestore operation with auth check
                     if (!user) return;
 
-                    // MANDATORY RULE 1: Use strict paths
-                    // Collection path: /artifacts/{appId}/public/data/counters
                     const counterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'counters', 'global_visits');
 
                     try {
                         const docSnap = await getDoc(counterDocRef);
-                        
                         if (!docSnap.exists()) {
-                            // Initial creation
                             await setDoc(counterDocRef, { value: 1 });
                         } else {
-                            // Atomic increment
-                            await updateDoc(counterDocRef, {
-                                value: increment(1)
-                            });
+                            await updateDoc(counterDocRef, { value: increment(1) });
                         }
 
-                        // Set up real-time listener with success and error callbacks (Requirement)
                         onSnapshot(counterDocRef, 
                             (doc) => {
                                 if (doc.exists()) {
-                                    const data = doc.data();
-                                    counterLabel.innerText = data.value.toLocaleString();
+                                    counterLabel.innerText = doc.data().value.toLocaleString();
                                 }
                             }, 
-                            (error) => {
-                                console.error("Firestore permission or access error:", error);
+                            (err) => {
+                                console.error(err);
                                 counterLabel.innerText = "Online";
                             }
                         );
                     } catch (e) {
-                        console.error("Firestore operation error:", e);
+                        console.error(e);
                         counterLabel.innerText = "Online";
                     }
                 });
-            } catch (error) {
-                console.error("Auth initialization error:", error);
+            } catch (err) {
+                console.error(err);
                 counterLabel.innerText = "Online";
             }
         }
-    </main>
+
+        initVisitorCounter();
+    </script>
     
     <!-- Simple Script for scrolling -->
     <script>
@@ -711,6 +696,7 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
 </body>
 
 </html>
+
 
 
 
