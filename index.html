@@ -413,7 +413,6 @@
                 My research focuses on developing information-driven and scalable subsurface imaging techniques to improve aquifer characterization in complex geologic systems. The outcomes of my work directly support groundwater sustainability and decision support by aligning process-based modeling with data-driven approaches in hydrogeology.
             </p>
         </section>
-
         <!-- ABOUT / EDUCATION / SKILLS -->
         <section id="about">
             <h1 class="section-title">Education & Skills</h1>
@@ -599,84 +598,87 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
                 </div>
             </div>
         </section>
-    </main>
-
-    <!-- VISITOR TAB UI -->
     <div id="visitor-container" class="visitor-tab">
         <div class="visitor-card">
-            <div class="visitor-icon">
-                <i class="fas fa-chart-line"></i>
-            </div>
+            <div class="visitor-icon"><i class="fas fa-eye"></i></div>
             <div style="display: flex; flex-direction: column;">
-                <span style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Visitors</span>
+                <span style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Total Visits</span>
                 <span id="count" style="font-size: 14px; font-weight: bold; color: #334155; font-family: monospace;">Connecting...</span>
             </div>
         </div>
     </div>
 
-    <!-- FIREBASE MODULE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Initialize Firebase with safety checks for Canvas environment
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'visitor-counter-app';
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const counterLabel = document.getElementById('count');
-
-        async function initVisitorCounter() {
-            try {
-                // Rule 3: Auth first
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
-                onAuthStateChanged(auth, async (user) => {
-                    if (!user) return;
-
-                    // Rule 1: Strict Paths
-                    const counterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'counters', 'global_visits');
-
-                    try {
-                        // Check if document exists, if not create it, else increment
-                        const docSnap = await getDoc(counterDocRef);
-                        if (!docSnap.exists()) {
-                            await setDoc(counterDocRef, { value: 1 });
-                        } else {
-                            await updateDoc(counterDocRef, { value: increment(1) });
-                        }
-
-                        // Listen for real-time changes
-                        onSnapshot(counterDocRef, (snapshot) => {
-                            if (snapshot.exists()) {
-                                counterLabel.innerText = snapshot.data().value.toLocaleString();
-                            }
-                        }, (error) => {
-                            console.error("Firestore error:", error);
-                            counterLabel.innerText = "Error Loading";
-                        });
-                    } catch (e) {
-                        console.error("Operation failed:", e);
-                        counterLabel.innerText = "Error";
-                    }
-                });
-            } catch (err) {
-                console.error("Auth failed:", err);
-                counterLabel.innerText = "Offline";
+        // PREVENT REFERENCE ERROR: Define config safely
+        let firebaseConfig = null;
+        try {
+            // Use typeof check to avoid "Uncaught ReferenceError: __firebase_config is not defined"
+            if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
             }
+        } catch (e) {
+            console.warn("Firebase config could not be parsed.");
         }
 
-        // Run on load
-        window.addEventListener('load', initVisitorCounter);
-    </script>
-    
+        const counterLabel = document.getElementById('count');
+
+        if (!firebaseConfig || !firebaseConfig.apiKey) {
+            counterLabel.innerText = "Developer Mode";
+            console.log("Firebase config missing. Running in non-connected mode.");
+        } else {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'personal-portfolio';
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            async function initCounter() {
+                try {
+                    // AUTHENTICATION (RULE 3)
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (!user) return;
+
+                        // FIRESTORE PATHS (RULE 1)
+                        const counterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'counters', 'global');
+
+                        try {
+                            const snap = await getDoc(counterDocRef);
+                            if (!snap.exists()) {
+                                await setDoc(counterDocRef, { value: 1 });
+                            } else {
+                                await updateDoc(counterDocRef, { value: increment(1) });
+                            }
+
+                            onSnapshot(counterDocRef, (snapshot) => {
+                                if (snapshot.exists()) {
+                                    counterLabel.innerText = snapshot.data().value.toLocaleString();
+                                }
+                            }, (err) => {
+                                console.error("Firestore sync error:", err);
+                                counterLabel.innerText = "Online";
+                            });
+                        } catch (err) {
+                            console.error("Counter update failed:", err);
+                            counterLabel.innerText = "Online";
+                        }
+                    });
+                } catch (err) {
+                    console.error("Firebase Auth failed:", err);
+                    counterLabel.innerText = "Guest Mode";
+                }
+            }
+            initCounter();
+        }
+    <script>
     <!-- Simple Script for scrolling -->
     <script>
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -698,6 +700,7 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
 </body>
 
 </html>
+
 
 
 
