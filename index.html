@@ -620,7 +620,7 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Variables provided by environment
+        // Initialize Firebase with safety checks for Canvas environment
         const firebaseConfig = JSON.parse(__firebase_config);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'visitor-counter-app';
 
@@ -631,6 +631,7 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
 
         async function initVisitorCounter() {
             try {
+                // Rule 3: Auth first
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -640,9 +641,11 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
                 onAuthStateChanged(auth, async (user) => {
                     if (!user) return;
 
+                    // Rule 1: Strict Paths
                     const counterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'counters', 'global_visits');
 
                     try {
+                        // Check if document exists, if not create it, else increment
                         const docSnap = await getDoc(counterDocRef);
                         if (!docSnap.exists()) {
                             await setDoc(counterDocRef, { value: 1 });
@@ -650,29 +653,28 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
                             await updateDoc(counterDocRef, { value: increment(1) });
                         }
 
-                        onSnapshot(counterDocRef, 
-                            (doc) => {
-                                if (doc.exists()) {
-                                    counterLabel.innerText = doc.data().value.toLocaleString();
-                                }
-                            }, 
-                            (err) => {
-                                console.error(err);
-                                counterLabel.innerText = "Online";
+                        // Listen for real-time changes
+                        onSnapshot(counterDocRef, (snapshot) => {
+                            if (snapshot.exists()) {
+                                counterLabel.innerText = snapshot.data().value.toLocaleString();
                             }
-                        );
+                        }, (error) => {
+                            console.error("Firestore error:", error);
+                            counterLabel.innerText = "Error Loading";
+                        });
                     } catch (e) {
-                        console.error(e);
-                        counterLabel.innerText = "Online";
+                        console.error("Operation failed:", e);
+                        counterLabel.innerText = "Error";
                     }
                 });
             } catch (err) {
-                console.error(err);
-                counterLabel.innerText = "Online";
+                console.error("Auth failed:", err);
+                counterLabel.innerText = "Offline";
             }
         }
 
-        initVisitorCounter();
+        // Run on load
+        window.addEventListener('load', initVisitorCounter);
     </script>
     
     <!-- Simple Script for scrolling -->
@@ -696,6 +698,7 @@ Municipality under AMRUT 2.0 usingWater Hammer.</p>
 </body>
 
 </html>
+
 
 
 
